@@ -29,21 +29,19 @@ $(document).ready(function() {
         value: 0,
         size: Math.min($('#circle').width(), $('#circle').height()),
         startAngle: -Math.PI / 2,
-        fill: {
-            color: "red"
-        },
+        fill: {image: "/static/Img/LoadingRing.png"},
         animation:{ duration: 100} 
     });
+
+    setInterval(function() {
+        var prevTime = root.timeLeft;
+        root.timeLeft -= 100;
+        $('#circle').circleProgress(
+            {
+                value:(1 - root.timeLeft / root.timeLimitMax), 
+                animationStartValue:(1 - prevTime / root.timeLimitMax)
+            }
+        );
+    }, 100)
     
 })
-
-setInterval(function() {
-    var prevTime = root.timeLeft;
-    root.timeLeft -= 100;
-    $('#circle').circleProgress(
-        {
-            value:(1 - root.timeLeft / root.timeLimitMax), 
-            animationStartValue:(1 - prevTime / root.timeLimitMax)
-        }
-    );
-}, 100)
