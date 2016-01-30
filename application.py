@@ -1,23 +1,33 @@
-
+import datetime as dt
 import time
+from multiprocessing import Process, Value
 from threading import Thread
 from flask import Flask, render_template, session, request
-from flask_socketio import SocketIO, emit, join_room, leave_room, \
+from flask_socketio import SocketIO, emit, send, join_room, leave_room, \
     close_room, rooms, disconnect
+from time import sleep
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecret4294!'
 socketio = SocketIO(app)
-number = 0
+demon_percent = Value('d', 0.0)
+demon_rate = Value('d', 0.01)
+rate_increase = Value('d', 0.001) 
+push_times = Value('i', 0)
+start_time = dt.datetime.now()
+high_score = 0
+dead = False
 
-@app.route('/number', methods=['GET', 'POST'])
-def get_number():
-    global number
-    if request.method == 'POST':
-        number += 1
-        return str(number)
-    else:
-        return str(number)
+def count_down(demon_percent, demon_rate, rate_increase, push_times):
+    while True:
+        demon_percent.value += demon_rate.value/100.0
+        if demon_percent.value >= 1.0:
+            sleep(5)
+            demon_percent.value = 0.0
+            demon_rate.value = 0.01
+            rate_increase.value = 0.001
+            push_times.value = 0
+        sleep(0.01)
 
 @socketio.on('my event')
 def test_message(message):
@@ -27,79 +37,57 @@ def test_message(message):
 def index():
     return render_template('index.html')
 
+@socketio.on('push button')
+def broadcast_message(message):
+    global demon_percent, demon_rate, rate_increase, push_times, start_time, high_score, dead
+    print 'SUPER MESSAGE'
+    if demon_percent.value >= 1.0:
+        print 'demon has won'
+        if dead is False:
+            now_time = dt.datetime.now()
+            demon_time = (now_time - start_time).seconds
+            if demon_time > high_score:
+                high_score = demon_time
+        dead = True
+    else:
+        print 'doing else'
+        if dead is True:
+            print 'dead is true'
+            start_time = dt.datetime.now()
+            dead = False
+        print 'doing stuffs'
+        now_time = dt.datetime.now()
+        demon_time = (now_time - start_time).seconds
+        push_times.value = push_times.value + 1
+        demon_percent.value -= message['percent_increase']
+        print 'increasing by ' + str( message['percent_increase'])
+        if demon_percent.value <= 0.0:
+            print 'demon was less than 0   ' + str(demon_percent.value)
+            demon_percent.value = 0.0
+        
+        print 'demon percent is now at ' + str(demon_percent.value)
+        rate_increase.value = 1.0/(push_times.value + 1000)
+        demon_rate.value += rate_increase.value
+       
+        emit('demon stats',
+             {'demon_percent': demon_percent.value, 'demon_rate': demon_rate.value, 'demon_time': demon_time, 'high_score': high_score},
+             broadcast=True)
 
-@socketio.on('my event', namespace='/test')
-def test_message(message):
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my response',
-         {'data': message['data'], 'count': session['receive_count']})
+@socketio.on('connect')
+def connect():
+    global demon_percent, demon_rate, rate_increase, push_times, start_time, high_score, dead
+    now_time = dt.datetime.now()
+    demon_time = (now_time - start_time).seconds
+    print str(demon_percent)
+    percent = demon_percent.value
+    rate = demon_rate.value
+    emit('connect info', {'demon_percent': percent, 'demon_rate': rate, 'demon_time': demon_time, 'high_score': high_score})
 
-
-@socketio.on('my broadcast event', namespace='/test')
-def test_broadcast_message(message):
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my response',
-         {'data': message['data'], 'count': session['receive_count']},
-         broadcast=True)
-
-
-@socketio.on('join', namespace='/test')
-def join(message):
-    join_room(message['room'])
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my response',
-         {'data': 'In rooms: ' + ', '.join(rooms()),
-          'count': session['receive_count']})
-
-
-@socketio.on('leave', namespace='/test')
-def leave(message):
-    leave_room(message['room'])
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my response',
-         {'data': 'In rooms: ' + ', '.join(rooms()),
-          'count': session['receive_count']})
-
-
-@socketio.on('close room', namespace='/test')
-def close(message):
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my response', {'data': 'Room ' + message['room'] + ' is closing.',
-                         'count': session['receive_count']},
-         room=message['room'])
-    close_room(message['room'])
-
-
-@socketio.on('my room event', namespace='/test')
-def send_room_message(message):
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my response',
-         {'data': message['data'], 'count': session['receive_count']},
-         room=message['room'])
-
-
-@socketio.on('disconnect request', namespace='/test')
-def disconnect_request():
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my response',
-         {'data': 'Disconnected!', 'count': session['receive_count']})
-    disconnect()
-
-
-@socketio.on('connect', namespace='/test')
-def test_connect():
-    emit('my response', {'data': 'Connected', 'count': 0})
-
-
-@socketio.on('disconnect', namespace='/test')
+@socketio.on('disconnect')
 def test_disconnect():
     print('Client disconnected', request.sid)
 
-
-
-
-
-
-
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=80, debug=True)
+    demon = Process(target=count_down, args=(demon_percent, demon_rate, rate_increase, push_times))
+    demon.start()
+    socketio.run(app, host='0.0.0.0', port=80, debug=False)
