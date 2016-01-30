@@ -40,7 +40,6 @@ def index():
 @socketio.on('push button')
 def broadcast_message(message):
     global demon_percent, demon_rate, rate_increase, push_times, start_time, high_score, dead
-    print 'SUPER MESSAGE'
     if demon_percent.value >= 1.0:
         if dead is False:
             now_time = dt.datetime.now()
@@ -50,7 +49,6 @@ def broadcast_message(message):
         dead = True
     else:
         if dead is True:
-            print 'dead is true'
             start_time = dt.datetime.now()
             dead = False
         now_time = dt.datetime.now()
