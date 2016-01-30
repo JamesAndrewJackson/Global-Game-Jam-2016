@@ -42,7 +42,6 @@ def broadcast_message(message):
     global demon_percent, demon_rate, rate_increase, push_times, start_time, high_score, dead
     print 'SUPER MESSAGE'
     if demon_percent.value >= 1.0:
-        print 'demon has won'
         if dead is False:
             now_time = dt.datetime.now()
             demon_time = (now_time - start_time).seconds
@@ -50,22 +49,17 @@ def broadcast_message(message):
                 high_score = demon_time
         dead = True
     else:
-        print 'doing else'
         if dead is True:
             print 'dead is true'
             start_time = dt.datetime.now()
             dead = False
-        print 'doing stuffs'
         now_time = dt.datetime.now()
         demon_time = (now_time - start_time).seconds
         push_times.value = push_times.value + 1
         demon_percent.value -= message['percent_increase']
-        print 'increasing by ' + str( message['percent_increase'])
         if demon_percent.value <= 0.0:
-            print 'demon was less than 0   ' + str(demon_percent.value)
             demon_percent.value = 0.0
         
-        print 'demon percent is now at ' + str(demon_percent.value)
         rate_increase.value = 1.0/(push_times.value + 1000)
         demon_rate.value += rate_increase.value
        
