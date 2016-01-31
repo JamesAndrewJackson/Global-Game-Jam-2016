@@ -24,7 +24,6 @@ def count_down(demon_percent, demon_rate, rate_increase, push_times, calc_second
     while True:
         if win_time.value == 0:
             demon_percent.value += demon_rate.value
-            print 'percent at ' + str(demon_percent.value)
         if demon_percent.value >= 1.0:
             win_sec = dt.datetime.now().second
             win_min = dt.datetime.now().minute
@@ -75,7 +74,7 @@ def broadcast_message(message):
         if demon_percent.value <= 0.0:
             demon_percent.value = 0.0
         
-        rate_increase.value = 1.0/(push_times.value + 1000)
+        rate_increase.value = 1.0/(push_times.value + 2000)
         demon_rate.value += rate_increase.value
        
         real_percent = demon_percent.value + (demon_rate.value * diff_time/1000000.0)
