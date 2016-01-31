@@ -90,6 +90,6 @@ $(document).ready(function() {
                 animationStartValue:(prev_percent)
             }
         );
-    }, 100)
+    }, 80)
     
 })
