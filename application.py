@@ -14,20 +14,22 @@ demon_percent = Value('d', 0.0)
 demon_rate = Value('d', 0.01)
 rate_increase = Value('d', 0.001) 
 push_times = Value('i', 0)
+calc_second = Value('i', 0)
 start_time = dt.datetime.now()
 high_score = 0
 dead = False
 
-def count_down(demon_percent, demon_rate, rate_increase, push_times):
+def count_down(demon_percent, demon_rate, rate_increase, push_times, calc_second):
     while True:
-        demon_percent.value += demon_rate.value/100.0
+        demon_percent.value += demon_rate.value
         if demon_percent.value >= 1.0:
             sleep(5)
             demon_percent.value = 0.0
             demon_rate.value = 0.01
             rate_increase.value = 0.001
             push_times.value = 0
-        sleep(0.01)
+        calc_second.value = dt.datetime.now().microsecond
+        sleep(1)
 
 @socketio.on('my event')
 def test_message(message):
@@ -39,7 +41,7 @@ def index():
 
 @socketio.on('push button')
 def broadcast_message(message):
-    global demon_percent, demon_rate, rate_increase, push_times, start_time, high_score, dead
+    global demon_percent, demon_rate, rate_increase, push_times, start_time, high_score, dead, calc_second
     if demon_percent.value >= 1.0:
         if dead is False:
             now_time = dt.datetime.now()
@@ -53,6 +55,11 @@ def broadcast_message(message):
             dead = False
         now_time = dt.datetime.now()
         demon_time = (now_time - start_time).seconds
+        now_microseconds = now_time.microsecond
+        if calc_second.value <= now_microseconds:
+            diff_time = now_microseconds - calc_second.value
+        else:
+            diff_time = (now_microseconds + 1000000) - calc_second.value
         push_times.value = push_times.value + 1
         demon_percent.value -= message['percent_increase']
         if demon_percent.value <= 0.0:
@@ -61,8 +68,9 @@ def broadcast_message(message):
         rate_increase.value = 1.0/(push_times.value + 1000)
         demon_rate.value += rate_increase.value
        
+        real_percent = demon_percent.value + (demon_rate.value * diff_time/1000000.0)
         emit('demon stats',
-             {'demon_percent': demon_percent.value, 'demon_rate': demon_rate.value, 'demon_time': demon_time, 'high_score': high_score},
+             {'demon_percent': real_percent, 'demon_rate': demon_rate.value, 'demon_time': demon_time, 'high_score': high_score, 'push_times': push_times.value},
              broadcast=True)
 
 @socketio.on('connect')
@@ -80,6 +88,6 @@ def test_disconnect():
     print('Client disconnected', request.sid)
 
 if __name__ == '__main__':
-    demon = Process(target=count_down, args=(demon_percent, demon_rate, rate_increase, push_times))
+    demon = Process(target=count_down, args=(demon_percent, demon_rate, rate_increase, push_times, calc_second))
     demon.start()
     socketio.run(app, host='0.0.0.0', port=80, debug=False)
