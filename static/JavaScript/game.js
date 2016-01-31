@@ -137,6 +137,7 @@ $(document).ready(function() {
                 rumble2.trigger('stopRumble');
                 rumble2.hide();
                 root.isRumble = false;
+                root.demon_show = false;
             }, 4000);
             
         }
