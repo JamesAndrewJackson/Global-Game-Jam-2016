@@ -151,7 +151,6 @@ $(document).ready(function() {
             root.cur_click_power(1);
         }
     }, 100)
-    
     $(window).resize(function() {
         $('#circle').circleProgress(
             {
