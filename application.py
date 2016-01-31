@@ -33,7 +33,7 @@ def count_down(demon_percent, demon_rate, rate_increase, push_times, calc_second
             rate_increase.value = 0.001
             push_times.value = 0
         calc_second.value = dt.datetime.now().microsecond
-        socketio.emit('demon percent', {'demon_percent': demon_percent.value})
+        #socketio.emit('demon percent', {'demon_percent': demon_percent.value})
         sleep(1)
 
 @socketio.on('my event')
