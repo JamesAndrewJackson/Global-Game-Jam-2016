@@ -117,7 +117,7 @@ $(document).ready(function() {
         if(root.cur_click_power() > 1) {
             root.cur_click_power(1);
         }
-    }, 80)
+    }, 85)
     
     $(window).resize(function() {
         $('#circle').circleProgress(
