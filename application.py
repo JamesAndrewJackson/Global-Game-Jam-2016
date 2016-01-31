@@ -54,7 +54,9 @@ def broadcast_message(message):
             start_time = dt.datetime.now()
             dead = False
         now_time = dt.datetime.now()
-        demon_time = (now_time - start_time).seconds
+        demon_time_seconds = (now_time - start_time).seconds
+        demon_time_microseconds = (now_time - start_time).microseconds
+        demon_time = '{0}.{1}'.format(demon_time_seconds, demon_time_microseconds)
         now_microseconds = now_time.microsecond
         if calc_second.value <= now_microseconds:
             diff_time = now_microseconds - calc_second.value
