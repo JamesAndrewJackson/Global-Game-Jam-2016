@@ -32,11 +32,14 @@ var socketContainer =  function() {
 
 var gameViewModel = function() {
     var self = this;
+    self.loading_img = new Image();
+    self.loading_img.src = "/static/Img/LoadingRing.png";
     self.game_socket = new socketContainer();
     self.demon_percent = 0;
     self.demon_rate = 0;
-    self.demon_time = 0;
-    self.cur_click_power = 1;
+    self.demon_time = ko.observable(0);
+    self.best_time = ko.observable(0);
+    self.cur_click_power = ko.observable(1);
     self.click_power_mod = 0.1
     
     self.percentUpdate = function(new_percent) {
@@ -52,15 +55,16 @@ var gameViewModel = function() {
     
     self.updateDemon = function(demon_stats) {
         self.demon_rate = demon_stats.demon_rate;
-        self.demon_time = demon_stats.demon_time;
+        self.demon_time(Math.round(parseFloat(demon_stats.demon_time * 10)) / 10);
+        self.best_time(Math.round(parseFloat(demon_stats.high_score * 10)) / 10);
         self.percentUpdate(demon_stats.demon_percent);
     }
     
     self.castRitual = function() {
-        self.game_socket.sendClick(self.cur_click_power * self.click_power_mod);
-        self.cur_click_power = self.cur_click_power / 2;
-        if(self.cur_click_power < 0.1) {
-            self.cur_click_power = 0.1
+        self.game_socket.sendClick(self.cur_click_power() * self.click_power_mod);
+        self.cur_click_power(self.cur_click_power() / 2);
+        if(self.cur_click_power() < 0.1) {
+            self.cur_click_power(0.1);
         }
     }
     
@@ -76,20 +80,34 @@ $(document).ready(function() {
         value: 0,
         size: Math.min($('#circle').width(), $('#circle').height()),
         startAngle: -Math.PI / 2,
-        fill: {image: "/static/Img/LoadingRing.png"},
+        fill: {image: root.loading_img},
         animation:{ duration: 100} 
         //animation: false
     });
 
     setInterval(function() {
         var prev_percent = root.demon_percent;
-        root.demon_percent += root.demon_rate / 10;
+        if(prev_percent < 1) {
+            root.demon_percent += root.demon_rate / 10;
+            root.demon_time(Math.round((root.demon_time() + .1) * 10) / 10);
+        }
         $('#circle').circleProgress(
             {
                 value:(root.demon_percent), 
                 animationStartValue:(prev_percent)
             }
         );
+        root.cur_click_power(root.cur_click_power() + .02);
+        if(root.cur_click_power() > 1) {
+            root.cur_click_power(1);
+        }
     }, 80)
     
+    $(window).resize(function() {
+        $('#circle').circleProgress(
+            {
+                size: Math.min($('#circle').width(), $('#circle').height()),
+            }
+        );
+    })
 })
