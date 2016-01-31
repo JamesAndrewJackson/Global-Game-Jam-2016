@@ -48,12 +48,10 @@ def broadcast_message(message):
     global demon_percent, demon_rate, rate_increase, push_times, start_time, high_score, dead, calc_second, win_time
     if demon_percent.value >= 1.0:
         if win_time.value > 0:
-            print 'win_time is ' + str(win_time.value)
             start_min = start_time.minute
             start_sec = start_time.second
             start_calc = (start_min * 60) + start_sec
             demon_time = (win_time.value - start_calc)
-            print 'diff win time is ' + str(demon_time)
             start_time = dt.datetime.now()
             demon_percent.value = 0.0
             win_time.value = 0
@@ -90,7 +88,7 @@ def connect():
     print str(demon_percent)
     percent = demon_percent.value
     rate = demon_rate.value
-    emit('connect info', {'demon_percent': percent, 'demon_rate': rate, 'demon_time': demon_time, 'high_score': high_score})
+    emit('connect info', {'demon_percent': percent, 'demon_rate': rate, 'demon_time': demon_time, 'high_score': high_score, 'push_times': push_times.value})
 
 @socketio.on('disconnect')
 def test_disconnect():
