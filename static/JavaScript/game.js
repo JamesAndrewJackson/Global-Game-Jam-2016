@@ -10,6 +10,7 @@ var socketContainer =  function() {
         //msg.demon_rate (val: 0-1) Rate the demon is counting down by, per second
         //msg.demon_time () Time of current demon game
         //msg.high_score
+        console.log("CONNECTION CONFIRMED")
         root.updateDemon(msg);
         
     })
@@ -41,6 +42,7 @@ var gameViewModel = function() {
     self.best_time = ko.observable(0);
     self.cur_click_power = ko.observable(1);
     self.click_power_mod = 0.1
+    self.isRumble = false;
     
     self.percentUpdate = function(new_percent) {
         var prev_percent = self.demon_percent;
@@ -75,6 +77,11 @@ var root = new gameViewModel();
 $(document).ready(function() {
     console.log("TEST");
     ko.applyBindings(root);
+    var rumble1 = $('#circle');
+    var rumble2 = $('#demon');
+    
+    rumble2.jrumble();
+    rumble1.jrumble();
     
     $('#circle').circleProgress({
         value: 0,
@@ -90,6 +97,15 @@ $(document).ready(function() {
         if(prev_percent < 1) {
             root.demon_percent += root.demon_rate / 10;
             root.demon_time(Math.round((root.demon_time() + .1) * 10) / 10);
+            if(prev_percent > 0.5 && !root.isRumble) {
+                rumble1.trigger('startRumble');
+                rumble2.trigger('startRumble');
+                root.isRumble = true;
+            } else if (prev_percent <= 0.5 && root.isRumble) {
+                rumble1.trigger('stopRumble')
+                rumble2.trigger('stopRumble')
+                root.isRumble = false;
+            }
         }
         $('#circle').circleProgress(
             {
