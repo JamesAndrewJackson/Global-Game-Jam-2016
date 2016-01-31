@@ -4,13 +4,14 @@ var socketContainer =  function() {
     // the socket.io documentation recommends sending an explicit package upon connection
     // this is specially important when using the global namespace
     self.socket = io.connect('http://54.152.72.255' + ':80');
+    self.socket.emit('connection');
     
     self.socket.on('connect info', function(msg) {
         //msg.demon_percent (Val 0-1) The current position of the demon's counter
         //msg.demon_rate (val: 0-1) Rate the demon is counting down by, per second
         //msg.demon_time () Time of current demon game
         //msg.high_score
-        console.log("CONNECTION CONFIRMED")
+        console.log("CONNECTION CONFIRMED");
         root.updateDemon(msg);
         
     })
@@ -20,6 +21,7 @@ var socketContainer =  function() {
         //msg.demon_rate (val: 0-1) Rate the demon is counting down by, per second
         //msg.demon_time () Time of current demon game
         //msg.high_score
+        //msg.push_times
         console.info("DEMON STATS");
         root.updateDemon(msg);
     })
@@ -43,6 +45,10 @@ var gameViewModel = function() {
     self.cur_click_power = ko.observable(1);
     self.click_power_mod = 0.1
     self.isRumble = false;
+    self.demon_show = false;
+    self.game_start = ko.observable(false);
+    self.game_end = ko.observable(false);
+    self.push_times = ko.observable(0);
     
     self.percentUpdate = function(new_percent) {
         var prev_percent = self.demon_percent;
@@ -60,6 +66,7 @@ var gameViewModel = function() {
         self.demon_time(Math.round(parseFloat(demon_stats.demon_time * 10)) / 10);
         self.best_time(Math.round(parseFloat(demon_stats.high_score * 10)) / 10);
         self.percentUpdate(demon_stats.demon_percent);
+        self.push_times(demon_stats.push_times);
     }
     
     self.castRitual = function() {
@@ -95,17 +102,43 @@ $(document).ready(function() {
     setInterval(function() {
         var prev_percent = root.demon_percent;
         if(prev_percent < 1) {
+            if(!root.game_start()) {
+                root.game_start(true);
+            }
             root.demon_percent += root.demon_rate / 10;
             root.demon_time(Math.round((root.demon_time() + .1) * 10) / 10);
-            if(prev_percent > 0.5 && !root.isRumble) {
+            if(prev_percent > 0.5 && !root.demon_show) {
+                rumble2.finish().fadeToggle("slow")
+                root.demon_show = (true);
+            } else if (prev_percent <= 0.5 && root.demon_show) {
+                rumble2.finish().fadeToggle("fast");
+                root.demon_show = (false);
+            }
+            if(prev_percent > 0.75 && !root.isRumble) {
                 rumble1.trigger('startRumble');
                 rumble2.trigger('startRumble');
                 root.isRumble = true;
-            } else if (prev_percent <= 0.5 && root.isRumble) {
+            } else if (prev_percent <= 0.75 && root.isRumble) {
                 rumble1.trigger('stopRumble')
                 rumble2.trigger('stopRumble')
                 root.isRumble = false;
             }
+        } else if (root.game_start() && !root.game_end()) {
+            root.game_end(true);
+            var endText = $("#END");
+            endText.jrumble();
+            setTimeout(function(){
+                endText.trigger('startRumble');
+            }, 1500);
+            setTimeout(function(){
+                root.game_start(false);
+                root.game_end(false);
+                rumble1.trigger('stopRumble');
+                rumble2.trigger('stopRumble');
+                rumble2.hide();
+                root.isRumble = false;
+            }, 4000);
+            
         }
         $('#circle').circleProgress(
             {
@@ -117,7 +150,7 @@ $(document).ready(function() {
         if(root.cur_click_power() > 1) {
             root.cur_click_power(1);
         }
-    }, 80)
+    }, 100)
     
     $(window).resize(function() {
         $('#circle').circleProgress(
